@@ -24,7 +24,8 @@ PORT=8080 python code1.py
 
 - **Vs Computer**: Play as X and choose a level. Easy makes random moves, Medium wins or blocks immediate threats, and Hard uses minimax search and can force a draw if you play perfectly.
 - **Local 2P**: Take turns on the same screen and keyboard. X moves first.
-- **LAN Play**: One person creates a room and shares the six-character code and a reachable server address. The other person enters the code to join as O. Moves sync through the Python server.
+- **Multiplayer**: One person creates a room and shares the six-character code and a reachable server address. The other person enters the code to join as O. Moves sync through the Python server.
+- **Tournament**: A host creates a tournament and shares its code or invite link. Up to 64 players join the lobby; the host starts a single-elimination bracket when ready. Matches are best of three, drawn games replay, and uneven brackets receive byes.
 
 Click a square, or use the keyboard:
 
@@ -34,13 +35,13 @@ Click a square, or use the keyboard:
 
 After a win or draw, the result dialog starts the next round when dismissed. The match score is for the current page session. Wins, losses, draws, current streak, and best streak are saved in that browser's local storage.
 
-## LAN Notes
+## Multiplayer Notes
 
-LAN play works while the Python server stays running. Both players need to be able to reach the same server address; on a home network, use the host computer's local IP and allow inbound traffic on the chosen port. In Codespaces, use its forwarded port address and make sure the other player has permission to open it. Room state lives in server memory, expires after 12 hours, and is cleared when the server stops. Use room codes only with people you trust; this lightweight game server is intended for casual private play, not public hosting.
+Multiplayer rooms and tournaments work while the Python server stays running. All players need to be able to reach the same server address; on a home network, use the host computer's local IP and allow inbound traffic on the chosen port. In Codespaces, use its forwarded port address and make sure each player has permission to open it. Room and tournament state lives in server memory, expires after 12 hours, and is cleared when the server stops. Tournament seats are remembered for the current browser tab. Use room codes only with people you trust; this lightweight game server is intended for casual private play, not public hosting.
 
 ## Project Files
 
-- `code1.py` starts the web server and handles LAN rooms and legal moves.
+- `code1.py` starts the web server and handles multiplayer rooms, tournament brackets, and legal moves.
 - `tic-tac-toe/index.html` contains the responsive interface and game logic.
 
 The interface respects reduced-motion settings. Player statistics stay in the browser and are not sent to the server.

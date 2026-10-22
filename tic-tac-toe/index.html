@@ -66,14 +66,31 @@
     }
 
     .mode-switch {
+      position: relative;
+      overflow: hidden;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 4px;
       margin: 14px 0 12px;
       padding: 4px;
       border: 1px solid rgba(255, 255, 255, .75);
       border-radius: 6px;
       background: rgba(24, 51, 51, .055);
+    }
+
+    .mode-switch::after, .difficulty::after {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      background: linear-gradient(108deg, transparent 25%, rgba(255, 255, 255, .08) 38%, rgba(255, 255, 255, .82) 48%, rgba(178, 255, 237, .45) 53%, rgba(255, 174, 214, .38) 58%, transparent 72%);
+      content: "";
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-120%) skewX(-18deg);
+    }
+
+    .mode-switch.is-changing::after, .difficulty.is-changing::after {
+      animation: mirror-sweep 720ms ease-out both;
     }
 
     .mode-button {
@@ -92,17 +109,46 @@
       box-shadow: 0 1px 5px rgba(24, 51, 51, .1);
     }
 
-    .difficulty { margin: 0 0 13px; }
+    .mode-switch.is-changing .mode-button[aria-pressed="true"],
+    .difficulty.is-changing .difficulty-level {
+      animation: color-pop 720ms ease-out both;
+    }
+
+    .difficulty { position: relative; overflow: hidden; margin: 0 0 13px; }
     .difficulty[hidden] { display: none; }
+    .difficulty[data-level="easy"] { --level-color: #3f9b69; --level-tint: rgba(63, 155, 105, .14); }
+    .difficulty[data-level="medium"] { --level-color: #c99a20; --level-tint: rgba(201, 154, 32, .16); }
+    .difficulty[data-level="hard"] { --level-color: #d9574f; --level-tint: rgba(217, 87, 79, .14); }
+    .difficulty[data-level="hard"] { animation: danger-pulse 1.8s ease-in-out infinite; }
     .difficulty-top { display: flex; justify-content: space-between; align-items: center; }
     .difficulty-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .7px; }
-    .difficulty-level { color: var(--ink); font-size: 10px; font-weight: 700; }
+    .difficulty-level { color: var(--level-color); font-size: 10px; font-weight: 700; }
+    .difficulty[data-level="hard"] .difficulty-level { text-shadow: 0 0 9px rgba(217, 87, 79, .42); }
     .difficulty-meter { display: flex; gap: 4px; margin-top: 6px; }
     .difficulty-meter span { height: 3px; flex: 1; border-radius: 3px; background: rgba(24, 51, 51, .12); }
-    .difficulty-meter span.active { background: var(--coral); }
+    .difficulty-meter span.active { background: var(--level-color); }
+    .difficulty[data-level="hard"] .difficulty-meter span.active { box-shadow: 0 0 8px rgba(217, 87, 79, .8); }
     .difficulty-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 5px; }
-    .difficulty-button { border: 0; padding: 4px 0; background: transparent; color: var(--muted); font: 11px "Helvetica Neue", Helvetica, sans-serif; cursor: pointer; }
-    .difficulty-button[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
+    .difficulty-button {
+      min-height: 28px;
+      border: 0;
+      border-radius: 5px;
+      padding: 4px 0;
+      background: transparent;
+      color: var(--muted);
+      font: 11px "Helvetica Neue", Helvetica, sans-serif;
+      cursor: pointer;
+      transition: transform 120ms ease, background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
+    }
+    .difficulty-button:active { transform: translateY(2px) scale(.94); }
+    .difficulty-button:focus-visible { outline: 2px solid var(--level-color); outline-offset: 1px; }
+    .difficulty-button[aria-pressed="true"] {
+      background: var(--level-tint);
+      box-shadow: inset 0 0 0 1px var(--level-tint);
+      color: var(--level-color);
+      font-weight: 700;
+      animation: difficulty-button-pop 420ms cubic-bezier(.2,.8,.2,1.2) both;
+    }
 
     .lan-tools { margin: 0 0 12px; }
     .lan-tools[hidden] { display: none; }
@@ -122,6 +168,24 @@
     }
 
     .lan-message { min-height: 16px; margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+    .tournament-tools { margin: 0 0 12px; }
+    .tournament-tools[hidden] { display: none; }
+    .tournament-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+    .tournament-actions input {
+      min-width: 0;
+      height: 36px;
+      flex: 1 1 95px;
+      border: 1px solid rgba(24, 51, 51, .18);
+      border-radius: 5px;
+      padding: 0 9px;
+      background: rgba(255, 255, 250, .72);
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .tournament-message { min-height: 16px; margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+    .tournament-roster, .tournament-bracket { margin-top: 8px; color: var(--muted); font-size: 11px; }
+    .tournament-roster ul, .tournament-bracket ul { margin: 4px 0 0; padding-left: 18px; }
+    .tournament-round + .tournament-round { margin-top: 8px; }
     .profile {
       display: flex;
       justify-content: space-between;
@@ -134,6 +198,25 @@
     .profile strong { color: var(--ink); }
     .game-panel { animation: panel-in 420ms cubic-bezier(.2,.75,.25,1) both; }
     @keyframes panel-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes mirror-sweep {
+      12% { opacity: 1; }
+      78% { opacity: .85; }
+      to { opacity: 0; transform: translateX(120%) skewX(-18deg); }
+    }
+    @keyframes color-pop {
+      0%, 100% { filter: none; }
+      35% { filter: hue-rotate(115deg) saturate(1.8); }
+      70% { filter: hue-rotate(-35deg) saturate(1.5); }
+    }
+    @keyframes danger-pulse {
+      0%, 100% { box-shadow: 0 0 0 rgba(217, 87, 79, 0); }
+      50% { box-shadow: 0 0 16px rgba(217, 87, 79, .28); }
+    }
+    @keyframes difficulty-button-pop {
+      0% { transform: translateY(2px) scale(.9); box-shadow: inset 0 0 0 1px var(--level-tint), 0 0 0 0 var(--level-tint); }
+      62% { transform: translateY(-1px) scale(1.07); box-shadow: inset 0 0 0 1px var(--level-tint), 0 0 0 6px transparent; }
+      100% { transform: translateY(0) scale(1); box-shadow: inset 0 0 0 1px var(--level-tint), 0 0 0 0 transparent; }
+    }
     .cell.pop { animation: mark-in 220ms cubic-bezier(.2,.8,.2,1.2) both; }
     @keyframes mark-in { from { opacity: .2; transform: scale(.55) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
 
@@ -220,6 +303,7 @@
 
     @media (max-width: 380px) {
       .game-panel { padding: 13px; }
+      .mode-button { font-size: 9px; }
       .cell { font-size: 48px; }
       .scores { gap: 8px; }
       .score-item { font-size: 11px; }
@@ -228,6 +312,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+      .difficulty[data-level="hard"] { animation: none; }
     }
   </style>
 </head>
@@ -241,13 +326,14 @@
 
     <section class="game-panel" aria-label="Tic Tac Toe game">
       <div class="panel-top">
-        <span class="section-label">LOCAL MATCH</span>
+        <span class="section-label" id="match-label">LOCAL MATCH</span>
         <span class="turn-label" id="turn" aria-live="polite">Turn: <strong>X</strong></span>
       </div>
       <div class="mode-switch" role="group" aria-label="Game mode">
         <button class="mode-button" type="button" data-mode="solo" aria-pressed="true">VS COMPUTER</button>
         <button class="mode-button" type="button" data-mode="local" aria-pressed="false">LOCAL 2P</button>
-        <button class="mode-button" type="button" data-mode="lan" aria-pressed="false">LAN PLAY</button>
+        <button class="mode-button" type="button" data-mode="lan" aria-pressed="false">MULTIPLAYER</button>
+        <button class="mode-button" type="button" data-mode="tournament" aria-pressed="false">TOURNAMENT</button>
       </div>
       <div class="difficulty" id="difficulty-control">
         <div class="difficulty-top">
@@ -271,6 +357,19 @@
           <button class="action" id="copy-room" type="button" hidden>COPY</button>
         </div>
         <p class="lan-message" id="lan-message" aria-live="polite">Create a room or enter a friend's code.</p>
+      </div>
+      <div class="tournament-tools" id="tournament-tools" hidden>
+        <div class="tournament-actions">
+          <input id="tournament-name" maxlength="20" autocomplete="nickname" placeholder="Your name" aria-label="Your tournament name">
+          <button class="action" id="create-tournament" type="button">CREATE</button>
+          <input id="tournament-code" maxlength="6" autocomplete="off" placeholder="CODE" aria-label="Tournament code">
+          <button class="action" id="join-tournament" type="button">JOIN</button>
+          <button class="action" id="start-tournament" type="button" hidden>START</button>
+          <button class="action" id="copy-tournament" type="button" hidden>COPY</button>
+        </div>
+        <p class="tournament-message" id="tournament-message" aria-live="polite">Create a tournament or enter a code to join.</p>
+        <div class="tournament-roster" id="tournament-roster"></div>
+        <div class="tournament-bracket" id="tournament-bracket"></div>
       </div>
       <div class="board-wrap">
         <div class="board" id="board" role="group" aria-label="Game board"></div>
@@ -303,6 +402,7 @@
 
   <script>
     const STORAGE_KEY = "fieldwork-tictactoe-profile-v1";
+    const TOURNAMENT_SESSION_KEY = "fieldwork-tictactoe-tournament-v1";
     const board = Array(9).fill("");
     const scores = { X: 0, O: 0, draws: 0 };
     const winningLines = [
@@ -316,6 +416,8 @@
     const roomInput = document.getElementById("room-code");
     const lanMessage = document.getElementById("lan-message");
     const profile = loadProfile();
+    const savedTournamentSession = loadTournamentSession();
+    let audioContext = null;
     let mode = "solo";
     let difficulty = "medium";
     let currentPlayer = "X";
@@ -329,6 +431,9 @@
     let lanRoom = null;
     let pollTimer = null;
     let skipDialogClose = false;
+    let tournamentCode = savedTournamentSession.code;
+    let tournamentPlayer = savedTournamentSession.player;
+    let tournamentData = null;
 
     function loadProfile() {
       const emptyProfile = { wins: 0, losses: 0, draws: 0, streak: 0, best: 0 };
@@ -346,6 +451,65 @@
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(profile)); } catch { /* Storage may be disabled. */ }
     }
 
+    function loadTournamentSession() {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(TOURNAMENT_SESSION_KEY) || "{}");
+        return typeof saved.code === "string" && typeof saved.player === "string"
+          ? saved
+          : { code: "", player: "" };
+      } catch {
+        return { code: "", player: "" };
+      }
+    }
+
+    function saveTournamentSession() {
+      try {
+        sessionStorage.setItem(TOURNAMENT_SESSION_KEY, JSON.stringify({
+          code: tournamentCode,
+          player: tournamentPlayer,
+        }));
+      } catch {
+        document.getElementById("tournament-message").textContent =
+          "Tournament joined, but this browser could not save your seat for a page reload.";
+      }
+    }
+
+    function playUiSound(frequencies) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      audioContext ||= new AudioContextClass();
+      if (audioContext.state === "suspended") audioContext.resume();
+
+      const startTime = audioContext.currentTime;
+      frequencies.forEach(({ frequency, offset = 0 }) => {
+        const oscillator = audioContext.createOscillator();
+        const volume = audioContext.createGain();
+        const noteStart = startTime + offset;
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, noteStart);
+        volume.gain.setValueAtTime(0.0001, noteStart);
+        volume.gain.exponentialRampToValueAtTime(0.045, noteStart + 0.012);
+        volume.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.15);
+        oscillator.connect(volume);
+        volume.connect(audioContext.destination);
+        oscillator.start(noteStart);
+        oscillator.stop(noteStart + 0.16);
+      });
+    }
+
+    function playMoveSound(mark) {
+      playUiSound([{ frequency: mark === "X" ? 440 : 554 }]);
+    }
+
+    function playRoundSound(winner, isDraw) {
+      const notes = isDraw
+        ? [{ frequency: 392 }, { frequency: 349, offset: 0.12 }]
+        : winner === "X"
+          ? [{ frequency: 523 }, { frequency: 659, offset: 0.12 }, { frequency: 784, offset: 0.24 }]
+          : [{ frequency: 494 }, { frequency: 622, offset: 0.12 }, { frequency: 740, offset: 0.24 }];
+      playUiSound(notes);
+    }
+
     function findWinningLine() {
       return winningLines.find((line) =>
         board[line[0]] && line.every((index) => board[index] === board[line[0]])
@@ -355,7 +519,9 @@
     function renderDifficulty() {
       const levels = { easy: 1, medium: 2, hard: 3 };
       const level = levels[difficulty];
-      document.getElementById("difficulty-control").hidden = mode !== "solo";
+      const difficultyControl = document.getElementById("difficulty-control");
+      difficultyControl.hidden = mode !== "solo";
+      difficultyControl.dataset.level = difficulty;
       document.getElementById("difficulty-level").textContent = difficulty.toUpperCase();
       const meter = document.getElementById("difficulty-meter");
       meter.setAttribute("aria-valuenow", level);
@@ -368,13 +534,28 @@
       });
     }
 
+    function animateChange(element) {
+      element.classList.remove("is-changing");
+      void element.offsetWidth;
+      element.classList.add("is-changing");
+      const finishAnimation = (event) => {
+        if (event.target === element && event.animationName === "mirror-sweep") {
+          element.classList.remove("is-changing");
+          element.removeEventListener("animationend", finishAnimation);
+        }
+      };
+      element.addEventListener("animationend", finishAnimation);
+    }
+
     function render() {
       boardElement.replaceChildren();
       const canMove = mode === "solo"
         ? currentPlayer === "X" && !aiThinking
         : mode === "lan"
           ? Boolean(lanRoom && lanRoom.joined && lanPlayer === currentPlayer)
-          : true;
+          : mode === "tournament"
+            ? Boolean(tournamentData?.yourMatch && tournamentData.yourMatch.yourMark === currentPlayer)
+            : true;
 
       board.forEach((mark, index) => {
         const cell = document.createElement("button");
@@ -387,7 +568,10 @@
         if (mark === "O") cell.classList.add("o");
         if (winningCells.includes(index)) cell.classList.add("winner");
         if (lastMove === index) cell.classList.add("pop");
-        cell.addEventListener("click", () => play(index, mode === "lan" ? lanPlayer : currentPlayer));
+        cell.addEventListener("click", () => play(index,
+          mode === "lan" ? lanPlayer
+            : mode === "tournament" ? tournamentData?.yourMatch?.yourMark
+              : currentPlayer));
         boardElement.append(cell);
       });
       lastMove = null;
@@ -401,6 +585,12 @@
       document.getElementById("current-streak").textContent = profile.streak;
       document.getElementById("best-streak").textContent = profile.best;
       document.getElementById("score-label").textContent = mode === "solo" ? "YOU  /  COMPUTER" : "SCORE";
+      document.querySelector(".panel-bottom").hidden = mode === "tournament";
+      document.querySelector(".profile").hidden = mode === "tournament";
+      document.getElementById("new-round").hidden = mode === "tournament";
+      document.getElementById("match-label").textContent = mode === "tournament"
+        ? `TOURNAMENT · ROUND ${tournamentData?.roundNumber || 1}`
+        : mode === "lan" ? "MULTIPLAYER MATCH" : "LOCAL MATCH";
       renderDifficulty();
 
       let turnText = `Turn: ${currentPlayer}`;
@@ -411,7 +601,17 @@
             : lanPlayer === currentPlayer ? `Your move · ${currentPlayer}`
               : `Waiting for ${currentPlayer} · ${roomCode}`;
       }
-      if (gameOver) turnText = "Round complete";
+      if (mode === "tournament") {
+        turnText = !tournamentCode ? "Create or join a tournament"
+          : !tournamentData?.started ? `Waiting for tournament · ${tournamentData?.players.length || 0} joined`
+            : tournamentData.winner ? `${tournamentData.winner} wins the tournament!`
+              : tournamentData.eliminated ? "Eliminated · follow the bracket"
+                : !tournamentData.yourMatch ? "Waiting for the next round"
+                  : tournamentData.yourMatch.turn === tournamentData.yourMatch.yourMark
+                    ? `Your move · ${tournamentData.yourMatch.yourMark}`
+                    : `Waiting for ${tournamentData.yourMatch.turn}`;
+      }
+      if (gameOver && mode !== "tournament") turnText = "Round complete";
       turnElement.textContent = turnText;
     }
 
@@ -434,6 +634,7 @@
     function showResult(winner, isDraw) {
       gameOver = true;
       aiThinking = false;
+      playRoundSound(winner, isDraw);
       if (isDraw) {
         scores.draws += 1;
         document.getElementById("result-title").textContent = "A draw";
@@ -453,6 +654,7 @@
     function makeLocalMove(index, mark) {
       if (gameOver || board[index]) return;
       board[index] = mark;
+      playMoveSound(mark);
       lastMove = index;
       winningCells = findWinningLine();
       if (winningCells.length) {
@@ -547,6 +749,93 @@
       return result;
     }
 
+    function renderTournamentDetails(tournament) {
+      const message = document.getElementById("tournament-message");
+      const startButton = document.getElementById("start-tournament");
+      document.getElementById("copy-tournament").hidden = !tournamentCode;
+      startButton.hidden = !tournament.isHost || tournament.started;
+      if (tournament.winner) {
+        message.textContent = `${tournament.winner} wins the tournament!`;
+      } else if (!tournament.started) {
+        message.textContent = `${tournament.players.length} player${tournament.players.length === 1 ? "" : "s"} joined · share code ${tournament.code} · host starts when ready.`;
+      } else if (tournament.eliminated) {
+        message.textContent = "You're eliminated. You can still follow the live bracket.";
+      } else if (!tournament.yourMatch) {
+        message.textContent = `Round ${tournament.roundNumber} is underway · your next match will start when the other games finish.`;
+      } else {
+        const match = tournament.yourMatch;
+        const score = `${match.score[0]}–${match.score[1]}`;
+        const draw = match.lastResult === "draw" ? " · tied game, replaying" : "";
+        message.textContent = `Round ${tournament.roundNumber} · best of 3 · game ${match.gameNumber} · match score ${score}${draw}.`;
+      }
+
+      const roster = document.getElementById("tournament-roster");
+      roster.replaceChildren();
+      const rosterTitle = document.createElement("strong");
+      rosterTitle.textContent = `Players (${tournament.players.length}/64)`;
+      roster.append(rosterTitle);
+      const rosterList = document.createElement("ul");
+      tournament.players.forEach((name) => {
+        const item = document.createElement("li");
+        item.textContent = name;
+        rosterList.append(item);
+      });
+      roster.append(rosterList);
+
+      const bracket = document.getElementById("tournament-bracket");
+      bracket.replaceChildren();
+      tournament.rounds.forEach((round) => {
+        const section = document.createElement("section");
+        section.className = "tournament-round";
+        const heading = document.createElement("strong");
+        heading.textContent = `Round ${round.number}`;
+        section.append(heading);
+        const matches = document.createElement("ul");
+        round.matches.forEach((match, index) => {
+          const item = document.createElement("li");
+          if (match.bye) {
+            item.textContent = `${match.players[0]} gets a bye`;
+          } else {
+            const score = ` · ${match.score[0]}–${match.score[1]}`;
+            const outcome = match.winner ? ` · ${match.winner} advances` : "";
+            item.textContent = `Match ${index + 1}: ${match.players.join(" vs ")}${score}${outcome}`;
+          }
+          matches.append(item);
+        });
+        section.append(matches);
+        bracket.append(section);
+      });
+    }
+
+    function applyTournamentState(tournament) {
+      tournamentData = tournament;
+      renderTournamentDetails(tournament);
+      if (tournament.yourMatch) {
+        board.splice(0, board.length, ...tournament.yourMatch.board);
+        currentPlayer = tournament.yourMatch.turn;
+        winningCells = findWinningLine();
+        gameOver = false;
+      } else {
+        board.fill("");
+        currentPlayer = "X";
+        winningCells = [];
+        gameOver = true;
+      }
+      render();
+    }
+
+    async function pollTournament() {
+      if (mode !== "tournament" || !tournamentCode || !tournamentPlayer) return;
+      try {
+        const result = await requestApi(
+          `/api/tournaments/state?code=${encodeURIComponent(tournamentCode)}&player=${encodeURIComponent(tournamentPlayer)}`
+        );
+        applyTournamentState(result.tournament);
+      } catch (error) {
+        document.getElementById("tournament-message").textContent = error.message;
+      }
+    }
+
     function applyRoomState(room) {
       const oldRound = lanRoom?.round;
       lanRoom = room;
@@ -577,8 +866,13 @@
 
     function startPolling() {
       window.clearInterval(pollTimer);
-      pollRoom();
-      pollTimer = window.setInterval(pollRoom, 1200);
+      if (mode === "lan") {
+        pollRoom();
+        pollTimer = window.setInterval(pollRoom, 1200);
+      } else if (mode === "tournament") {
+        pollTournament();
+        pollTimer = window.setInterval(pollTournament, 1200);
+      }
     }
 
     async function play(index, mark) {
@@ -589,10 +883,26 @@
       } else if (mode === "local") {
         if (mark !== currentPlayer) return;
         makeLocalMove(index, mark);
+      } else if (mode === "tournament") {
+        if (!tournamentData?.yourMatch || mark !== tournamentData.yourMatch.yourMark
+          || mark !== currentPlayer) return;
+        try {
+          const result = await requestApi("/api/tournaments/move", "POST", {
+            code: tournamentCode,
+            player: tournamentPlayer,
+            index,
+          });
+          playMoveSound(mark);
+          applyTournamentState(result.tournament);
+        } catch (error) {
+          document.getElementById("tournament-message").textContent = error.message;
+          await pollTournament();
+        }
       } else {
         if (!lanRoom?.joined || mark !== lanPlayer || mark !== currentPlayer) return;
         try {
           const result = await requestApi("/api/rooms/move", "POST", { code: roomCode, player: mark, index });
+          playMoveSound(mark);
           applyRoomState(result.room);
         } catch (error) {
           lanMessage.textContent = error.message;
@@ -634,8 +944,61 @@
       }
     }
 
+    function tournamentName() {
+      return document.getElementById("tournament-name").value.trim();
+    }
+
+    function joinCreatedTournament(result) {
+      tournamentCode = result.tournament.code;
+      tournamentPlayer = result.player;
+      document.getElementById("tournament-code").value = tournamentCode;
+      saveTournamentSession();
+      applyTournamentState(result.tournament);
+      startPolling();
+    }
+
+    async function createTournament() {
+      try {
+        const result = await requestApi("/api/tournaments", "POST", { name: tournamentName() });
+        joinCreatedTournament(result);
+      } catch (error) {
+        document.getElementById("tournament-message").textContent = error.message;
+      }
+    }
+
+    async function joinTournament() {
+      const code = document.getElementById("tournament-code").value.trim().toUpperCase();
+      if (code.length !== 6) {
+        document.getElementById("tournament-message").textContent = "Enter the six-character tournament code.";
+        return;
+      }
+      try {
+        const result = await requestApi("/api/tournaments/join", "POST", {
+          code,
+          name: tournamentName(),
+        });
+        joinCreatedTournament(result);
+      } catch (error) {
+        document.getElementById("tournament-message").textContent = error.message;
+      }
+    }
+
+    async function startTournament() {
+      try {
+        const result = await requestApi("/api/tournaments/start", "POST", {
+          code: tournamentCode,
+          player: tournamentPlayer,
+        });
+        applyTournamentState(result.tournament);
+      } catch (error) {
+        document.getElementById("tournament-message").textContent = error.message;
+      }
+    }
+
     async function nextRound() {
-      if (mode === "lan" && roomCode) {
+      if (mode === "tournament") {
+        return;
+      } else if (mode === "lan" && roomCode) {
         try {
           const result = await requestApi("/api/rooms/reset", "POST", { code: roomCode });
           applyRoomState(result.room);
@@ -653,38 +1016,53 @@
       }
     }
 
-    function setMode(nextMode) {
+    function setMode(nextMode, fromUser = false) {
+      const changed = mode !== nextMode;
       mode = nextMode;
       window.clearInterval(pollTimer);
       document.querySelectorAll(".mode-button").forEach((button) => {
         button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
       });
       document.getElementById("lan-tools").hidden = mode !== "lan";
+      document.getElementById("tournament-tools").hidden = mode !== "tournament";
       board.fill("");
       currentPlayer = "X";
       gameOver = false;
       aiThinking = false;
       winningCells = [];
       selectedCell = 0;
-      if (mode === "lan" && roomCode) startPolling();
+      if ((mode === "lan" && roomCode) || (mode === "tournament" && tournamentCode && fromUser)) startPolling();
+      if (mode === "tournament" && tournamentData) applyTournamentState(tournamentData);
       render();
+      animateChange(document.querySelector(".mode-switch"));
+      if (changed && fromUser) {
+        const modeNotes = { solo: 523, local: 659, lan: 784, tournament: 880 };
+        const note = modeNotes[mode];
+        playUiSound([{ frequency: note }, { frequency: note * 1.25, offset: 0.07 }]);
+      }
     }
 
     function setDifficulty(nextDifficulty) {
-      if (["easy", "medium", "hard"].includes(nextDifficulty)) {
+      if (["easy", "medium", "hard"].includes(nextDifficulty) && difficulty !== nextDifficulty) {
         difficulty = nextDifficulty;
         render();
+        animateChange(document.getElementById("difficulty-control"));
+        const levelNotes = { easy: 392, medium: 523, hard: 659 };
+        playUiSound([{ frequency: levelNotes[difficulty] }]);
       }
     }
 
     document.querySelectorAll(".mode-button").forEach((button) => {
-      button.addEventListener("click", () => setMode(button.dataset.mode));
+      button.addEventListener("click", () => setMode(button.dataset.mode, true));
     });
     document.querySelectorAll(".difficulty-button").forEach((button) => {
       button.addEventListener("click", () => setDifficulty(button.dataset.difficulty));
     });
     document.getElementById("create-room").addEventListener("click", createRoom);
     document.getElementById("join-room").addEventListener("click", joinRoom);
+    document.getElementById("create-tournament").addEventListener("click", createTournament);
+    document.getElementById("join-tournament").addEventListener("click", joinTournament);
+    document.getElementById("start-tournament").addEventListener("click", startTournament);
     document.getElementById("copy-room").addEventListener("click", async () => {
       const invite = new URL(window.location.href);
       invite.searchParams.set("room", roomCode);
@@ -693,6 +1071,18 @@
         lanMessage.textContent = "Invite link copied.";
       } catch {
         lanMessage.textContent = `Share this address and room code: ${roomCode}`;
+      }
+    });
+    document.getElementById("copy-tournament").addEventListener("click", async () => {
+      const invite = new URL(window.location.href);
+      invite.searchParams.delete("room");
+      invite.searchParams.set("tournament", tournamentCode);
+      try {
+        await navigator.clipboard.writeText(invite.href);
+        document.getElementById("tournament-message").textContent = "Tournament invite link copied.";
+      } catch {
+        document.getElementById("tournament-message").textContent =
+          `Share this address and tournament code: ${tournamentCode}`;
       }
     });
     document.getElementById("new-round").addEventListener("click", nextRound);
@@ -729,7 +1119,19 @@
 
     window.addEventListener("beforeunload", () => window.clearInterval(pollTimer));
     const inviteCode = new URLSearchParams(window.location.search).get("room");
-    if (inviteCode) {
+    const tournamentInvite = new URLSearchParams(window.location.search).get("tournament");
+    if (tournamentInvite && tournamentCode === tournamentInvite.toUpperCase() && tournamentPlayer) {
+      setMode("tournament");
+      document.getElementById("tournament-code").value = tournamentCode;
+      startPolling();
+    } else if (tournamentInvite) {
+      setMode("tournament");
+      document.getElementById("tournament-code").value = tournamentInvite;
+      joinTournament();
+    } else if (tournamentCode && tournamentPlayer) {
+      setMode("tournament");
+      startPolling();
+    } else if (inviteCode) {
       setMode("lan");
       roomInput.value = inviteCode;
       joinRoom();
