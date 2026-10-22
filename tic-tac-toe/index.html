@@ -92,6 +92,18 @@
       box-shadow: 0 1px 5px rgba(24, 51, 51, .1);
     }
 
+    .difficulty { margin: 0 0 13px; }
+    .difficulty[hidden] { display: none; }
+    .difficulty-top { display: flex; justify-content: space-between; align-items: center; }
+    .difficulty-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .7px; }
+    .difficulty-level { color: var(--ink); font-size: 10px; font-weight: 700; }
+    .difficulty-meter { display: flex; gap: 4px; margin-top: 6px; }
+    .difficulty-meter span { height: 3px; flex: 1; border-radius: 3px; background: rgba(24, 51, 51, .12); }
+    .difficulty-meter span.active { background: var(--coral); }
+    .difficulty-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 5px; }
+    .difficulty-button { border: 0; padding: 4px 0; background: transparent; color: var(--muted); font: 11px "Helvetica Neue", Helvetica, sans-serif; cursor: pointer; }
+    .difficulty-button[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
+
     .lan-tools { margin: 0 0 12px; }
     .lan-tools[hidden] { display: none; }
     .lan-actions { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -237,6 +249,20 @@
         <button class="mode-button" type="button" data-mode="local" aria-pressed="false">LOCAL 2P</button>
         <button class="mode-button" type="button" data-mode="lan" aria-pressed="false">LAN PLAY</button>
       </div>
+      <div class="difficulty" id="difficulty-control">
+        <div class="difficulty-top">
+          <span class="difficulty-label">COMPUTER LEVEL</span>
+          <span class="difficulty-level" id="difficulty-level">MEDIUM</span>
+        </div>
+        <div class="difficulty-meter" id="difficulty-meter" role="meter" aria-label="Computer difficulty" aria-valuemin="1" aria-valuemax="3" aria-valuenow="2" aria-valuetext="Medium">
+          <span></span><span class="active"></span><span></span>
+        </div>
+        <div class="difficulty-buttons" role="group" aria-label="Choose computer difficulty">
+          <button class="difficulty-button" type="button" data-difficulty="easy" aria-pressed="false">Easy</button>
+          <button class="difficulty-button" type="button" data-difficulty="medium" aria-pressed="true">Medium</button>
+          <button class="difficulty-button" type="button" data-difficulty="hard" aria-pressed="false">Hard</button>
+        </div>
+      </div>
       <div class="lan-tools" id="lan-tools" hidden>
         <div class="lan-actions">
           <button class="action" id="create-room" type="button">CREATE ROOM</button>
@@ -291,6 +317,7 @@
     const lanMessage = document.getElementById("lan-message");
     const profile = loadProfile();
     let mode = "solo";
+    let difficulty = "medium";
     let currentPlayer = "X";
     let gameOver = false;
     let aiThinking = false;
@@ -323,6 +350,22 @@
       return winningLines.find((line) =>
         board[line[0]] && line.every((index) => board[index] === board[line[0]])
       ) || [];
+    }
+
+    function renderDifficulty() {
+      const levels = { easy: 1, medium: 2, hard: 3 };
+      const level = levels[difficulty];
+      document.getElementById("difficulty-control").hidden = mode !== "solo";
+      document.getElementById("difficulty-level").textContent = difficulty.toUpperCase();
+      const meter = document.getElementById("difficulty-meter");
+      meter.setAttribute("aria-valuenow", level);
+      meter.setAttribute("aria-valuetext", difficulty[0].toUpperCase() + difficulty.slice(1));
+      meter.querySelectorAll("span").forEach((bar, index) => {
+        bar.classList.toggle("active", index < level);
+      });
+      document.querySelectorAll(".difficulty-button").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.difficulty === difficulty));
+      });
     }
 
     function render() {
@@ -358,6 +401,7 @@
       document.getElementById("current-streak").textContent = profile.streak;
       document.getElementById("best-streak").textContent = profile.best;
       document.getElementById("score-label").textContent = mode === "solo" ? "YOU  /  COMPUTER" : "SCORE";
+      renderDifficulty();
 
       let turnText = `Turn: ${currentPlayer}`;
       if (mode === "solo" && aiThinking) turnText = "Computer thinking…";
@@ -442,8 +486,33 @@
       return bestScore;
     }
 
-    function makeComputerMove() {
-      if (mode !== "solo" || gameOver) return;
+    function findImmediateMove(mark) {
+      for (let index = 0; index < board.length; index += 1) {
+        if (board[index]) continue;
+        board[index] = mark;
+        const wins = findWinningLine().length > 0;
+        board[index] = "";
+        if (wins) return index;
+      }
+      return -1;
+    }
+
+    function chooseComputerMove() {
+      const available = board.map((mark, index) => mark ? -1 : index).filter((index) => index !== -1);
+      if (difficulty === "easy") {
+        return available[Math.floor(Math.random() * available.length)];
+      }
+      if (difficulty === "medium") {
+        const winningMove = findImmediateMove("O");
+        if (winningMove !== -1) return winningMove;
+        const blockingMove = findImmediateMove("X");
+        if (blockingMove !== -1) return blockingMove;
+        if (available.includes(4)) return 4;
+        const corners = available.filter((index) => [0, 2, 6, 8].includes(index));
+        const choices = corners.length ? corners : available;
+        return choices[Math.floor(Math.random() * choices.length)];
+      }
+
       let bestIndex = -1;
       let bestScore = -Infinity;
       for (const index of [4, 0, 2, 6, 8, 1, 3, 5, 7]) {
@@ -456,8 +525,14 @@
           bestIndex = index;
         }
       }
+      return bestIndex;
+    }
+
+    function makeComputerMove() {
+      if (mode !== "solo" || gameOver) return;
       aiThinking = false;
-      if (bestIndex !== -1) makeLocalMove(bestIndex, "O");
+      const index = chooseComputerMove();
+      if (index !== -1) makeLocalMove(index, "O");
     }
 
     async function requestApi(path, method = "GET", data = null) {
@@ -595,8 +670,18 @@
       render();
     }
 
+    function setDifficulty(nextDifficulty) {
+      if (["easy", "medium", "hard"].includes(nextDifficulty)) {
+        difficulty = nextDifficulty;
+        render();
+      }
+    }
+
     document.querySelectorAll(".mode-button").forEach((button) => {
       button.addEventListener("click", () => setMode(button.dataset.mode));
+    });
+    document.querySelectorAll(".difficulty-button").forEach((button) => {
+      button.addEventListener("click", () => setDifficulty(button.dataset.difficulty));
     });
     document.getElementById("create-room").addEventListener("click", createRoom);
     document.getElementById("join-room").addEventListener("click", joinRoom);

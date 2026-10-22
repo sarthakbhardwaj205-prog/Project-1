@@ -22,7 +22,7 @@ PORT=8080 python code1.py
 
 ## Play
 
-- **Vs Computer**: Play as X against an unbeatable computer. It uses minimax search and can force a draw if you play perfectly.
+- **Vs Computer**: Play as X and choose a level. Easy makes random moves, Medium wins or blocks immediate threats, and Hard uses minimax search and can force a draw if you play perfectly.
 - **Local 2P**: Take turns on the same screen and keyboard. X moves first.
 - **LAN Play**: One person creates a room and shares the six-character code and a reachable server address. The other person enters the code to join as O. Moves sync through the Python server.
 
