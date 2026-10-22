@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fieldwork / Tic Tac Toe</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #183333;
+      --muted: #667b73;
+      --coral: #df745c;
+      --lime: #d9e48a;
+      --glass: rgba(255, 255, 250, .55);
+      --edge: rgba(255, 255, 255, .82);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+      background:
+        repeating-linear-gradient(132deg, transparent 0 34px, rgba(24, 51, 51, .025) 35px 36px),
+        linear-gradient(132deg, #e4ede1 0%, #f2f2e9 48%, #f1e5db 100%);
+      color: var(--ink);
+      font-family: "Helvetica Neue", Helvetica, sans-serif;
+    }
+
+    main { width: min(100%, 430px); }
+    header { margin: 0 0 18px 4px; }
+
+    .eyebrow, .section-label {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    header h1 {
+      margin: 8px 0 3px;
+      font: 700 36px/1.05 Georgia, serif;
+      letter-spacing: 0;
+    }
+
+    header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .game-panel {
+      padding: 18px;
+      border: 1px solid var(--edge);
+      border-radius: 8px;
+      background: var(--glass);
+      box-shadow: 0 18px 48px rgba(31, 61, 50, .12), inset 0 1px rgba(255, 255, 255, .65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .panel-top, .panel-bottom, .scores, .score-item {
+      display: flex;
+      align-items: center;
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin: 14px 0 12px;
+      padding: 4px;
+      border: 1px solid rgba(255, 255, 255, .75);
+      border-radius: 6px;
+      background: rgba(24, 51, 51, .055);
+    }
+
+    .mode-button {
+      min-height: 34px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      font: 700 11px "Helvetica Neue", Helvetica, sans-serif;
+      cursor: pointer;
+    }
+
+    .mode-button[aria-pressed="true"] {
+      background: rgba(255, 255, 250, .88);
+      color: var(--ink);
+      box-shadow: 0 1px 5px rgba(24, 51, 51, .1);
+    }
+
+    .lan-tools { margin: 0 0 12px; }
+    .lan-tools[hidden] { display: none; }
+    .lan-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+    .lan-actions input {
+      width: 90px;
+      min-width: 0;
+      height: 36px;
+      flex: 1 1 70px;
+      border: 1px solid rgba(24, 51, 51, .18);
+      border-radius: 5px;
+      padding: 0 9px;
+      background: rgba(255, 255, 250, .72);
+      color: var(--ink);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .lan-message { min-height: 16px; margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+    .profile {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .profile strong { color: var(--ink); }
+    .game-panel { animation: panel-in 420ms cubic-bezier(.2,.75,.25,1) both; }
+    @keyframes panel-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .cell.pop { animation: mark-in 220ms cubic-bezier(.2,.8,.2,1.2) both; }
+    @keyframes mark-in { from { opacity: .2; transform: scale(.55) rotate(-8deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+
+    dialog {
+      width: min(340px, calc(100% - 32px));
+      border: 1px solid rgba(255, 255, 255, .85);
+      border-radius: 8px;
+      padding: 24px;
+      background: rgba(250, 251, 243, .9);
+      color: var(--ink);
+      text-align: center;
+      box-shadow: 0 20px 70px rgba(24, 51, 51, .24);
+      backdrop-filter: blur(22px);
+    }
+
+    dialog[open] { animation: panel-in 220ms ease-out both; }
+    dialog::backdrop { background: rgba(24, 51, 51, .24); backdrop-filter: blur(5px); }
+    dialog h2 { margin: 0 0 8px; font: 700 27px Georgia, serif; }
+    dialog p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+
+    .panel-top, .panel-bottom { justify-content: space-between; gap: 12px; }
+    .turn-label { color: var(--muted); font-size: 12px; }
+    .turn-label strong { color: var(--ink); font-size: 14px; }
+
+    .board-wrap {
+      margin: 15px 0;
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, .8);
+      border-radius: 8px;
+      background: rgba(213, 229, 216, .48);
+    }
+
+    .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+
+    .cell {
+      display: grid;
+      aspect-ratio: 1;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .82);
+      border-radius: 5px;
+      padding: 0;
+      background: rgba(255, 255, 250, .7);
+      color: var(--ink);
+      font: 700 56px/1 Georgia, serif;
+      cursor: pointer;
+      transition: background-color 130ms ease;
+    }
+
+    .cell:hover:not(:disabled) { background: rgba(255, 255, 255, .96); }
+    .cell:focus-visible { outline: 3px solid var(--coral); outline-offset: -4px; }
+    .cell.selected { box-shadow: inset 0 0 0 2px rgba(223, 116, 92, .72); }
+    .cell.o { color: var(--coral); }
+    .cell.winner { background: var(--lime); animation: winner-glow 650ms ease-in-out infinite alternate; }
+    .cell:disabled { cursor: default; }
+    @keyframes winner-glow { from { box-shadow: inset 0 0 0 0 rgba(24, 51, 51, 0); } to { box-shadow: inset 0 0 0 3px rgba(24, 51, 51, .12); } }
+
+    .panel-bottom {
+      min-height: 40px;
+      padding-top: 13px;
+      border-top: 1px solid rgba(24, 51, 51, .12);
+    }
+
+    .scores { gap: 12px; margin-top: 5px; }
+    .score-item { gap: 4px; color: var(--muted); font-size: 12px; }
+    .score-item b { color: var(--ink); }
+
+    button.action {
+      min-height: 36px;
+      border: 1px solid rgba(255, 255, 255, .25);
+      border-radius: 5px;
+      padding: 0 12px;
+      background: var(--ink);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .4px;
+      cursor: pointer;
+    }
+
+    button.action:hover { background: #284846; }
+    button.action:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+    .key-hint { margin: 13px 4px 0; color: var(--muted); font-size: 11px; text-align: center; }
+    kbd { color: var(--ink); font: 700 11px "Helvetica Neue", Helvetica, sans-serif; }
+
+    @media (max-width: 380px) {
+      .game-panel { padding: 13px; }
+      .cell { font-size: 48px; }
+      .scores { gap: 8px; }
+      .score-item { font-size: 11px; }
+      button.action { padding: 0 9px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">FIELDWORK &nbsp;/&nbsp; STUDIO GAMES</div>
+      <h1>Tic Tac Toe</h1>
+      <p>Two players. One board.</p>
+    </header>
+
+    <section class="game-panel" aria-label="Tic Tac Toe game">
+      <div class="panel-top">
+        <span class="section-label">LOCAL MATCH</span>
+        <span class="turn-label" id="turn" aria-live="polite">Turn: <strong>X</strong></span>
+      </div>
+      <div class="mode-switch" role="group" aria-label="Game mode">
+        <button class="mode-button" type="button" data-mode="solo" aria-pressed="true">VS COMPUTER</button>
+        <button class="mode-button" type="button" data-mode="local" aria-pressed="false">LOCAL 2P</button>
+        <button class="mode-button" type="button" data-mode="lan" aria-pressed="false">LAN PLAY</button>
+      </div>
+      <div class="lan-tools" id="lan-tools" hidden>
+        <div class="lan-actions">
+          <button class="action" id="create-room" type="button">CREATE ROOM</button>
+          <input id="room-code" maxlength="6" autocomplete="off" placeholder="CODE" aria-label="Room code">
+          <button class="action" id="join-room" type="button">JOIN</button>
+          <button class="action" id="copy-room" type="button" hidden>COPY</button>
+        </div>
+        <p class="lan-message" id="lan-message" aria-live="polite">Create a room or enter a friend's code.</p>
+      </div>
+      <div class="board-wrap">
+        <div class="board" id="board" role="group" aria-label="Game board"></div>
+      </div>
+      <div class="panel-bottom">
+        <div>
+          <div class="section-label" id="score-label">SCORE</div>
+          <div class="scores" aria-live="polite">
+            <span class="score-item">X <b id="score-x">0</b></span>
+            <span class="score-item">O <b id="score-o">0</b></span>
+            <span class="score-item">Draw <b id="score-draws">0</b></span>
+          </div>
+        </div>
+        <button class="action" id="new-round" type="button">NEW ROUND ↻</button>
+      </div>
+      <div class="profile" aria-live="polite">
+        <span>W <strong id="profile-wins">0</strong> &nbsp;L <strong id="profile-losses">0</strong> &nbsp;D <strong id="profile-draws">0</strong></span>
+        <span>STREAK <strong id="current-streak">0</strong> &nbsp;BEST <strong id="best-streak">0</strong></span>
+      </div>
+    </section>
+
+    <p class="key-hint">Arrows or <kbd>1</kbd>-<kbd>9</kbd> select · <kbd>X</kbd>/<kbd>O</kbd> plays · <kbd>R</kbd> restarts</p>
+  </main>
+
+  <dialog id="result-dialog" aria-labelledby="result-title">
+    <h2 id="result-title">Round complete</h2>
+    <p id="result-message"></p>
+    <button class="action" id="continue-button" type="button">NEXT ROUND</button>
+  </dialog>
+
+  <script>
+    const STORAGE_KEY = "fieldwork-tictactoe-profile-v1";
+    const board = Array(9).fill("");
+    const scores = { X: 0, O: 0, draws: 0 };
+    const winningLines = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+    const boardElement = document.getElementById("board");
+    const turnElement = document.getElementById("turn");
+    const resultDialog = document.getElementById("result-dialog");
+    const roomInput = document.getElementById("room-code");
+    const lanMessage = document.getElementById("lan-message");
+    const profile = loadProfile();
+    let mode = "solo";
+    let currentPlayer = "X";
+    let gameOver = false;
+    let aiThinking = false;
+    let winningCells = [];
+    let selectedCell = 0;
+    let lastMove = null;
+    let roomCode = "";
+    let lanPlayer = "X";
+    let lanRoom = null;
+    let pollTimer = null;
+    let skipDialogClose = false;
+
+    function loadProfile() {
+      const emptyProfile = { wins: 0, losses: 0, draws: 0, streak: 0, best: 0 };
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        return Object.fromEntries(Object.keys(emptyProfile).map((key) => [
+          key, Number.isFinite(saved[key]) ? Math.max(0, saved[key]) : emptyProfile[key]
+        ]));
+      } catch {
+        return emptyProfile;
+      }
+    }
+
+    function saveProfile() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(profile)); } catch { /* Storage may be disabled. */ }
+    }
+
+    function findWinningLine() {
+      return winningLines.find((line) =>
+        board[line[0]] && line.every((index) => board[index] === board[line[0]])
+      ) || [];
+    }
+
+    function render() {
+      boardElement.replaceChildren();
+      const canMove = mode === "solo"
+        ? currentPlayer === "X" && !aiThinking
+        : mode === "lan"
+          ? Boolean(lanRoom && lanRoom.joined && lanPlayer === currentPlayer)
+          : true;
+
+      board.forEach((mark, index) => {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "cell";
+        cell.textContent = mark;
+        cell.setAttribute("aria-label", `Square ${index + 1}${mark ? `, ${mark}` : ", empty"}`);
+        cell.disabled = gameOver || Boolean(mark) || !canMove;
+        cell.classList.toggle("selected", index === selectedCell && !gameOver);
+        if (mark === "O") cell.classList.add("o");
+        if (winningCells.includes(index)) cell.classList.add("winner");
+        if (lastMove === index) cell.classList.add("pop");
+        cell.addEventListener("click", () => play(index, mode === "lan" ? lanPlayer : currentPlayer));
+        boardElement.append(cell);
+      });
+      lastMove = null;
+
+      document.getElementById("score-x").textContent = scores.X;
+      document.getElementById("score-o").textContent = scores.O;
+      document.getElementById("score-draws").textContent = scores.draws;
+      document.getElementById("profile-wins").textContent = profile.wins;
+      document.getElementById("profile-losses").textContent = profile.losses;
+      document.getElementById("profile-draws").textContent = profile.draws;
+      document.getElementById("current-streak").textContent = profile.streak;
+      document.getElementById("best-streak").textContent = profile.best;
+      document.getElementById("score-label").textContent = mode === "solo" ? "YOU  /  COMPUTER" : "SCORE";
+
+      let turnText = `Turn: ${currentPlayer}`;
+      if (mode === "solo" && aiThinking) turnText = "Computer thinking…";
+      if (mode === "lan") {
+        turnText = !roomCode ? "Create or join a room"
+          : !lanRoom?.joined ? `Waiting for O · ${roomCode}`
+            : lanPlayer === currentPlayer ? `Your move · ${currentPlayer}`
+              : `Waiting for ${currentPlayer} · ${roomCode}`;
+      }
+      if (gameOver) turnText = "Round complete";
+      turnElement.textContent = turnText;
+    }
+
+    function updateProfile(winner, isDraw) {
+      const myMark = mode === "lan" ? lanPlayer : "X";
+      if (isDraw) {
+        profile.draws += 1;
+        profile.streak = 0;
+      } else if (winner === myMark) {
+        profile.wins += 1;
+        profile.streak += 1;
+        profile.best = Math.max(profile.best, profile.streak);
+      } else {
+        profile.losses += 1;
+        profile.streak = 0;
+      }
+      saveProfile();
+    }
+
+    function showResult(winner, isDraw) {
+      gameOver = true;
+      aiThinking = false;
+      if (isDraw) {
+        scores.draws += 1;
+        document.getElementById("result-title").textContent = "A draw";
+        document.getElementById("result-message").textContent = "Evenly matched. Your next round is ready.";
+      } else {
+        scores[winner] += 1;
+        document.getElementById("result-title").textContent = `${winner} wins!`;
+        document.getElementById("result-message").textContent = winner === (mode === "lan" ? lanPlayer : "X")
+          ? `Nice play. Your streak is ${profile.streak + 1}.`
+          : "Good game. Ready for a rematch?";
+      }
+      updateProfile(winner, isDraw);
+      render();
+      resultDialog.showModal();
+    }
+
+    function makeLocalMove(index, mark) {
+      if (gameOver || board[index]) return;
+      board[index] = mark;
+      lastMove = index;
+      winningCells = findWinningLine();
+      if (winningCells.length) {
+        showResult(mark, false);
+      } else if (board.every(Boolean)) {
+        showResult(null, true);
+      } else {
+        currentPlayer = mark === "X" ? "O" : "X";
+        selectedCell = board.findIndex((value) => !value);
+        aiThinking = mode === "solo" && currentPlayer === "O";
+        render();
+        if (aiThinking) window.setTimeout(makeComputerMove, 280);
+      }
+    }
+
+    function minimax(turn, depth) {
+      const line = findWinningLine();
+      if (line.length) return board[line[0]] === "O" ? 10 - depth : depth - 10;
+      if (board.every(Boolean)) return 0;
+
+      const maximizing = turn === "O";
+      let bestScore = maximizing ? -Infinity : Infinity;
+      const order = [4, 0, 2, 6, 8, 1, 3, 5, 7];
+      for (const index of order) {
+        if (board[index]) continue;
+        board[index] = turn;
+        const score = minimax(maximizing ? "X" : "O", depth + 1);
+        board[index] = "";
+        bestScore = maximizing ? Math.max(bestScore, score) : Math.min(bestScore, score);
+      }
+      return bestScore;
+    }
+
+    function makeComputerMove() {
+      if (mode !== "solo" || gameOver) return;
+      let bestIndex = -1;
+      let bestScore = -Infinity;
+      for (const index of [4, 0, 2, 6, 8, 1, 3, 5, 7]) {
+        if (board[index]) continue;
+        board[index] = "O";
+        const score = minimax("X", 0);
+        board[index] = "";
+        if (score > bestScore) {
+          bestScore = score;
+          bestIndex = index;
+        }
+      }
+      aiThinking = false;
+      if (bestIndex !== -1) makeLocalMove(bestIndex, "O");
+    }
+
+    async function requestApi(path, method = "GET", data = null) {
+      const options = { method, headers: {} };
+      if (data) {
+        options.headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(data);
+      }
+      const response = await fetch(path, options);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "The game server could not complete that request.");
+      return result;
+    }
+
+    function applyRoomState(room) {
+      const oldRound = lanRoom?.round;
+      lanRoom = room;
+      board.splice(0, board.length, ...room.board);
+      currentPlayer = room.turn;
+      winningCells = room.winner ? findWinningLine() : [];
+      if (oldRound !== undefined && oldRound !== room.round && resultDialog.open) {
+        skipDialogClose = true;
+        resultDialog.close();
+        gameOver = false;
+      }
+      if (room.winner && !gameOver) showResult(room.winner, false);
+      else if (room.draw && !gameOver) showResult(null, true);
+      else if (!room.winner && !room.draw) gameOver = false;
+      render();
+    }
+
+    async function pollRoom() {
+      if (mode !== "lan" || !roomCode) return;
+      try {
+        const result = await requestApi(`/api/rooms/state?code=${encodeURIComponent(roomCode)}`);
+        applyRoomState(result.room);
+        if (result.room.joined) lanMessage.textContent = `Connected · you are ${lanPlayer}.`;
+      } catch (error) {
+        lanMessage.textContent = error.message;
+      }
+    }
+
+    function startPolling() {
+      window.clearInterval(pollTimer);
+      pollRoom();
+      pollTimer = window.setInterval(pollRoom, 1200);
+    }
+
+    async function play(index, mark) {
+      if (gameOver || board[index]) return;
+      if (mode === "solo") {
+        if (mark !== "X" || currentPlayer !== "X" || aiThinking) return;
+        makeLocalMove(index, "X");
+      } else if (mode === "local") {
+        if (mark !== currentPlayer) return;
+        makeLocalMove(index, mark);
+      } else {
+        if (!lanRoom?.joined || mark !== lanPlayer || mark !== currentPlayer) return;
+        try {
+          const result = await requestApi("/api/rooms/move", "POST", { code: roomCode, player: mark, index });
+          applyRoomState(result.room);
+        } catch (error) {
+          lanMessage.textContent = error.message;
+          await pollRoom();
+        }
+      }
+    }
+
+    async function createRoom() {
+      try {
+        const result = await requestApi("/api/rooms", "POST", {});
+        roomCode = result.code;
+        lanPlayer = result.player;
+        roomInput.value = roomCode;
+        lanMessage.textContent = `Room ${roomCode} is ready. Share the address and code.`;
+        document.getElementById("copy-room").hidden = false;
+        applyRoomState(result.room);
+        startPolling();
+      } catch (error) {
+        lanMessage.textContent = error.message;
+      }
+    }
+
+    async function joinRoom() {
+      const code = roomInput.value.trim().toUpperCase();
+      if (code.length !== 6) {
+        lanMessage.textContent = "Enter the six-character room code.";
+        return;
+      }
+      try {
+        const result = await requestApi("/api/rooms/join", "POST", { code });
+        roomCode = result.code;
+        lanPlayer = result.player;
+        lanMessage.textContent = `Joined ${roomCode} · you are ${lanPlayer}.`;
+        applyRoomState(result.room);
+        startPolling();
+      } catch (error) {
+        lanMessage.textContent = error.message;
+      }
+    }
+
+    async function nextRound() {
+      if (mode === "lan" && roomCode) {
+        try {
+          const result = await requestApi("/api/rooms/reset", "POST", { code: roomCode });
+          applyRoomState(result.room);
+        } catch (error) {
+          lanMessage.textContent = error.message;
+        }
+      } else {
+        board.fill("");
+        currentPlayer = "X";
+        gameOver = false;
+        aiThinking = false;
+        winningCells = [];
+        selectedCell = 0;
+        render();
+      }
+    }
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      window.clearInterval(pollTimer);
+      document.querySelectorAll(".mode-button").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+      });
+      document.getElementById("lan-tools").hidden = mode !== "lan";
+      board.fill("");
+      currentPlayer = "X";
+      gameOver = false;
+      aiThinking = false;
+      winningCells = [];
+      selectedCell = 0;
+      if (mode === "lan" && roomCode) startPolling();
+      render();
+    }
+
+    document.querySelectorAll(".mode-button").forEach((button) => {
+      button.addEventListener("click", () => setMode(button.dataset.mode));
+    });
+    document.getElementById("create-room").addEventListener("click", createRoom);
+    document.getElementById("join-room").addEventListener("click", joinRoom);
+    document.getElementById("copy-room").addEventListener("click", async () => {
+      const invite = new URL(window.location.href);
+      invite.searchParams.set("room", roomCode);
+      try {
+        await navigator.clipboard.writeText(invite.href);
+        lanMessage.textContent = "Invite link copied.";
+      } catch {
+        lanMessage.textContent = `Share this address and room code: ${roomCode}`;
+      }
+    });
+    document.getElementById("new-round").addEventListener("click", nextRound);
+    document.getElementById("continue-button").addEventListener("click", () => resultDialog.close());
+    resultDialog.addEventListener("close", () => {
+      if (skipDialogClose) {
+        skipDialogClose = false;
+        return;
+      }
+      nextRound();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (resultDialog.open) return;
+      const key = event.key.toLowerCase();
+      const row = Math.floor(selectedCell / 3);
+      const col = selectedCell % 3;
+      if (key === "r") {
+        nextRound();
+      } else if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) {
+        event.preventDefault();
+        if (key === "arrowup") selectedCell = ((row + 2) % 3) * 3 + col;
+        if (key === "arrowdown") selectedCell = ((row + 1) % 3) * 3 + col;
+        if (key === "arrowleft") selectedCell = row * 3 + (col + 2) % 3;
+        if (key === "arrowright") selectedCell = row * 3 + (col + 1) % 3;
+        render();
+      } else if (/^[1-9]$/.test(key)) {
+        selectedCell = Number(key) - 1;
+        render();
+      } else if (key === "x" || key === "o") {
+        play(selectedCell, key.toUpperCase());
+      }
+    });
+
+    window.addEventListener("beforeunload", () => window.clearInterval(pollTimer));
+    const inviteCode = new URLSearchParams(window.location.search).get("room");
+    if (inviteCode) {
+      setMode("lan");
+      roomInput.value = inviteCode;
+      joinRoom();
+    }
+    render();
+  </script>
+</body>
+</html>
